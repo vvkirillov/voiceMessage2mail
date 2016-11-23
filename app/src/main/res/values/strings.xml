@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Voice2mail</string>
+    <string name="btnTalkTitle">Talk</string>
+    <string name="send">Send</string>
+</resources>
