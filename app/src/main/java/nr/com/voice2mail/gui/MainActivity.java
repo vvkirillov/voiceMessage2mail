@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,6 +29,7 @@ import roboguice.inject.InjectView;
 public class MainActivity extends RoboActivity {
     private static final String DEBUG_TAG = MainActivity.class.getSimpleName();
     private static final int SPEECH_INTENT_ID = 1;
+    private static final String SEND_BUTTON_STATE = "SEND_BUTTON_STATE";
 
     @InjectView(R.id.txtText)
     private EditText txtText;
@@ -43,8 +46,18 @@ public class MainActivity extends RoboActivity {
         setContentView(R.layout.activity_main);
         btnSend.setEnabled(false);
 
-        btnTalk.setOnClickListener(l -> {
-            promptToSpeech();
+        btnTalk.setOnClickListener(l -> promptToSpeech());
+        txtText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                btnSend.setEnabled(txtText.getText().length() != 0);
+            }
         });
     }
 
@@ -53,13 +66,13 @@ public class MainActivity extends RoboActivity {
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Talk");
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.talk));
 
         try {
             startActivityForResult(intent, SPEECH_INTENT_ID);
         }catch (ActivityNotFoundException e){
             Toast.makeText(getApplicationContext(),
-                    "Speech not supported",
+                    getString(R.string.speech_is_not_supported),
                     Toast.LENGTH_SHORT).show();
         }
     }
@@ -70,7 +83,7 @@ public class MainActivity extends RoboActivity {
 
         if(requestCode == SPEECH_INTENT_ID){
             if(resultCode == RESULT_OK && data != null){
-                List<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                final List<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                 if(result != null && !result.isEmpty()){
                     final String textResult = result.get(0);
                     if(!textResult.isEmpty()) {
@@ -83,5 +96,17 @@ public class MainActivity extends RoboActivity {
                 Log.d(DEBUG_TAG, "Text recognition was cancelled by the user");
             }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(SEND_BUTTON_STATE, btnSend.isEnabled());
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        btnSend.setEnabled(savedInstanceState.getBoolean(SEND_BUTTON_STATE, false));
     }
 }
